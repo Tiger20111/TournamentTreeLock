@@ -18,6 +18,7 @@ public class Resource {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        System.out.println("Thread id " + Thread.currentThread().getId() + " out of lock");
         lock.unlock();
     }
 }

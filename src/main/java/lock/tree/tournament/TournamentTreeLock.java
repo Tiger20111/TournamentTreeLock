@@ -2,15 +2,19 @@ package lock.tree.tournament;
 
 import lock.peterson.PetersonLock;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 public class TournamentTreeLock implements Lock {
-    private final PetersonLock[] treeLocks;
+    private final ArrayList<PetersonLock> treeLocks;
     private final int sizeTree;
     public TournamentTreeLock(int numThreads) {
-        treeLocks = new PetersonLock[numThreads - 1]; //warn
+        treeLocks = new ArrayList<>(); //warn
+        for (int i = 0; i < numThreads; i++) {
+            treeLocks.add(new PetersonLock());
+        }
         sizeTree = numThreads;
     }
 
@@ -44,7 +48,8 @@ public class TournamentTreeLock implements Lock {
         int currentLock = getThreadLeaf(indexLock);
 
         while (currentLock > 0) {
-            treeLocks[getParentIndex(currentLock)].lock(currentLock % 2);
+            int parentId = getParentIndex(currentLock);
+            treeLocks.get(parentId).lock(currentLock % 2);
             currentLock = getParentIndex(currentLock);
         }
     }
@@ -55,7 +60,7 @@ public class TournamentTreeLock implements Lock {
         int currentLock = getThreadLeaf(indexLock);
         while (currentLock > 0) {
             int childLock = currentLock;
-            currentLock = getThreadLeaf(currentLock);
+            currentLock = getParentIndex(currentLock);
             way = saveWayUnlock(childLock, currentLock, way);
             steps++;
         }
@@ -97,7 +102,7 @@ public class TournamentTreeLock implements Lock {
                 way >>= 1;
                 childLock = getLeftChild(currentLock);
             }
-            treeLocks[currentLock].unlock(childLock & 1);
+            treeLocks.get(currentLock).unlock(childLock & 1);
             currentLock = childLock;
             steps--;
         }
