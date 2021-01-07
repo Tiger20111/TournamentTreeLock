@@ -1,11 +1,6 @@
-package lock.peterson;
+package lock.tree.tournament.local;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 
 public class PetersonLock {
     private final AtomicIntegerArray flagWant = new AtomicIntegerArray(2);

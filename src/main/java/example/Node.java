@@ -1,12 +1,14 @@
 package example;
 
 public class Node implements Runnable{
-    private Resource resource;
-    Node(Resource resource) {
+    private final Resource resource;
+    private int numIter;
+    Node(Resource resource, int numIter) {
         this.resource = resource;
+        this.numIter = numIter;
     }
     public void run() {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < numIter; i++) {
             resource.getAccess();
         }
     }

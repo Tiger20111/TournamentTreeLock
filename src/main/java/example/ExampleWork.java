@@ -1,7 +1,5 @@
 package example;
 
-import lock.tree.tournament.TournamentTreeLock;
-
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -12,10 +10,10 @@ public class ExampleWork {
     ArrayList<Node> nodes = new ArrayList<>();
     Resource resource;
     int numThreads;
-    public ExampleWork(int n) {
+    public ExampleWork(int n, int numIter) {
         resource = new Resource(n);
         for (int i = 0; i < n; i++) {
-            nodes.add(new Node(resource));
+            nodes.add(new Node(resource, numIter));
         }
         numThreads = n;
     }

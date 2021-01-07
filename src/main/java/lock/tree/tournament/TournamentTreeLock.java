@@ -1,6 +1,6 @@
 package lock.tree.tournament;
 
-import lock.peterson.PetersonLock;
+import lock.tree.tournament.local.PetersonLock;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
