@@ -1,0 +1,115 @@
+#pragma once
+
+#include <atomic.hpp>
+#include <support.hpp>
+#include <mutex>
+#include <vector>
+#include <backoff.hpp>
+#include <tpcc/support/bit_twiddling.hpp>
+#include <iostream>
+
+namespace tpcc {
+namespace solutions {
+
+//про & и % знаю, но при работе с байтами мне так удобней.
+
+class PetersonLock {  //лок для двух потоков
+ public:
+  explicit PetersonLock() : waiting_(0) {
+    want_[0].store(false);
+    want_[1].store(false);
+  }
+  void Lock(size_t thread_index) {
+    Backoff backoff{};
+    want_[thread_index].store(true);
+    waiting_.store(thread_index);
+
+    while (want_[1 - thread_index].load() && waiting_.load() == thread_index) {
+      backoff();
+    }
+  }
+
+  void Unlock(size_t thread_index) {
+    want_[thread_index] = false;
+  }
+
+ private:
+  std::array<tpcc::atomic<bool>, 2> want_;
+  tpcc::atomic<size_t> waiting_;
+};
+
+class TournamentTreeLock {
+ public:
+  explicit TournamentTreeLock(size_t num_threads) : tree(num_threads - 1) {
+  }
+
+  void Lock(size_t thread_index) {
+    size_t current = GetThreadLeaf(
+        thread_index);  //захват всех локов на пути от листа до коня
+
+    while (current > 0) {  // capture all on the way to the goal
+      tree[GetParent(current)].Lock(current % 2);
+      current = GetParent(current);
+    }
+  }
+
+  void Unlock(
+      size_t thread_index) {  //анлок всех локов по пути от корня до листа
+    size_t way = 1;
+    int i = 0;
+    size_t current = GetThreadLeaf(thread_index);  //получение листа потока
+
+    while (current > 0) {  //запоминаем путь, по которому будем анлочить
+      size_t child = current;
+      current = GetParent(current);
+      PutWay(child, current, way);
+      i++;
+    }
+    while (i > 0) {
+      size_t child = WayChild(current, way);
+      tree[current].Unlock(child & 1);
+      current = child;
+      i--;
+    }
+  }
+
+ private:
+  void PutWay(size_t child, size_t current, size_t& way) {
+    way <<= 1;
+    if (2 * current + 2 == child)
+      way |= 1;
+  }
+  size_t WayChild(size_t current, size_t& way) {
+    if ((way & 1)) {
+      way >>= 1;
+      return GetRightChild(current);
+    } else {
+      way >>= 1;
+      return GetLeftChild(current);
+    }
+  }
+  size_t GetParent(
+      size_t node_index) const {  //получение отца формулой (num-1) / 2
+    return (node_index - 1) / 2;
+  }
+
+  size_t GetLeftChild(
+      size_t node_index) const {  //получение левого сына формулой 2 * num + 1
+    return 2 * node_index + 1;
+  }
+
+  size_t GetRightChild(
+      size_t node_index) const {  //получение правого сына 2 * num + 2
+    return 2 * node_index + 2;
+  }
+
+  size_t GetThreadLeaf(
+      size_t thread_index) const {  //получние листа принадлежащего потоку
+    return thread_index + tree.size();
+  }
+
+ private:
+  std::vector<PetersonLock> tree;
+};
+}
+}
